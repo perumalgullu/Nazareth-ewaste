@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>E-Waste Dashboard</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Poppins', sans-serif;
+      /* Removed static background to allow Vanta.js to control it */
+      transition: background 0.5s ease, color 0.5s ease;
+    }
+    /* Dark mode */
+    .dark {
+      background: linear-gradient(135deg, #1a202c, #2d3748);
+      color: #e2e8f0;
+    }
+    
+    /* Ensure content is visible above the background */
+    .content-wrapper {
+        position: relative;
+        z-index: 1;
+    }
+  </style>
+</head>
+<body id="vanta-bg" class="p-6">
+    <div class="content-wrapper">
+         <div class="flex justify-between items-center mb-6">
+           <h1 class="text-2xl font-bold text-blue-700 dark:text-green-400">👋 Welcome, User!</h1>
+           <div class="flex gap-2">
+             <a href="index.html">
+               <button class="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition">🏠 Home</button>
+             </a>
+           </div>
+         </div>
+       
+         <h2 class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md">⚙️ E-Waste Calculator</h2>
+         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg mb-6 transition bg-opacity-80 dark:bg-opacity-80 backdrop-blur-sm">
+           <label class="block font-medium">📂 Product Category</label>
+           <select id="categorySelect" onchange="updateProducts()" 
+             class="w-full mt-2 mb-4 p-3 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-400 transition">
+             <option value="">Select category</option>
+             <option value="Large Appliances">Large Appliances</option>
+             <option value="Small Appliances">Small Appliances</option>
+             <option value="IT & Telecom">IT & Telecom</option>
+             <option value="Consumer Electronics">Consumer Electronics</option>
+             <option value="Lighting Equipment">Lighting Equipment</option>
+             <option value="Electrical Tools">Electrical Tools</option>
+             <option value="Toys">Toys</option>
+             <option value="Medical Devices">Medical Devices</option>
+             <option value="Monitoring Devices">Monitoring Devices</option>
+             <option value="Batteries & Cables">Batteries & Cables</option>
+           </select>
+       
+           <label class="block font-medium">📦 Product Name</label>
+           <input list="productList" id="productInput" placeholder="Select or type product name"
+             class="w-full mt-2 mb-4 p-3 rounded-lg border border-gray-300 dark:border-gray-600 
+                    bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-400 transition">
+           <datalist id="productList"></datalist>
+       
+           <label class="block font-medium">⚖️ Weight of Product (kg)</label>
+           <input type="number" id="weightInput" placeholder="Enter weight in kg" 
+             min="1" max="999"
+             class="w-full mt-2 p-3 rounded-lg border border-gray-300 dark:border-gray-600 
+                    bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-green-400 transition">
+           <p id="weightError" class="text-red-500 text-sm hidden">❌ Max 3 digits allowed (1-999).</p>
+       
+           <label class="block font-medium mt-4">🔢 Quantity</label>
+           <input type="number" id="quantityInput" placeholder="Enter quantity" value="1" min="1" max="999"
+             class="w-full mt-2 p-3 rounded-lg border border-gray-300 dark:border-gray-600 
+                    bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-green-400 transition">
+           <p id="quantityError" class="text-red-500 text-sm hidden">❌ Max 3 digits allowed (1-999).</p>
+       
+           <button onclick="addProduct()" 
+             class="mt-4 px-6 py-3 rounded-lg bg-green-600 text-white hover:bg-green-700 shadow-md transition">➕ Add</button>
+         </div>
+       
+         <h2 class="bg-blue-600 text-white px-4 py-2 rounded-lg shadow-md mt-8">📊 Calculation Table</h2>
+         <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg transition overflow-x-auto bg-opacity-80 dark:bg-opacity-80 backdrop-blur-sm">
+           <table class="w-full border-collapse text-center">
+             <thead>
+                <tr class="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                    <th class="py-3 px-4 border">S.No</th>
+                    <th class="py-3 px-4 border">Product Name</th>
+                    <th class="py-3 px-4 border">Weight (kg)</th>
+                    <th class="py-3 px-4 border">Quantity</th>
+                    <th class="py-3 px-4 border">CO₂ Saved (kg)</th>
+                    <th class="py-3 px-4 border">Cash Back (₹)</th>
+                </tr>
+            </thead>
+            <tbody id="productTable" class="divide-y divide-gray-200 dark:divide-gray-600"></tbody>
+            <tfoot>
+                <tr class="font-bold bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-gray-100">
+                    <td colspan="2" class="py-3 px-4 border">Total</td>
+                    <td id="totalWeight" class="py-3 px-4 border">0</td>
+                    <td id="totalQty" class="py-3 px-4 border">0</td>
+                    <td id="totalCO2" class="py-3 px-4 border">0</td>
+                    <td id="totalCash" class="py-3 px-4 border">0</td>
+                </tr>
+            </tfoot>
+           </table>
+         </div>
+    </div>
+    
+<script>
+  // Product options
+  const productOptions = {
+    "Large Appliances": ["Refrigerator", "Washing Machine", "Air Conditioner"],
+    "Small Appliances": ["Mixer", "Toaster", "Electric Kettle"],
+    "IT & Telecom": ["Laptop", "Desktop CPU", "Mobile Phone", "Tablet"],
+    "Consumer Electronics": ["Television", "CRT Monitor", "Set-top Box"],
+    "Lighting Equipment": ["LED Bulb", "Tube Light"],
+    "Electrical Tools": ["Electric Drill", "Soldering Iron"],
+    "Toys": ["Remote-Controlled Car", "Electronic Toy"],
+    "Medical Devices": ["Glucometer", "Digital Thermometer"],
+    "Monitoring Devices": ["CCTV Camera", "Door Alarm"],
+    "Batteries & Cables": ["Power Bank", "USB Cable"]
+  };
+
+  function updateProducts() {
+    const category = document.getElementById("categorySelect").value;
+    const productList = document.getElementById("productList");
+    productList.innerHTML = ''; // Clear old options
+
+    if (productOptions[category]) {
+      productOptions[category].forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p;
+        productList.appendChild(opt);
+      });
+    }
+  }
+
+  // 🔹 Auto-block and show error for > 3 digits
+  function validateInput(inputId, errorId) {
+    const input = document.getElementById(inputId);
+    const error = document.getElementById(errorId);
+    input.addEventListener("input", function () {
+      if (this.value.length > 3) {
+        this.value = this.value.slice(0, 3);
+        error.classList.remove("hidden");
+      } else {
+        error.classList.add("hidden");
+      }
+    });
+  }
+
+  validateInput("weightInput", "weightError");
+  validateInput("quantityInput", "quantityError");
+
+  let row = 0, totalQty = 0, totalWeight = 0, totalCO2 = 0, totalCash = 0;
+
+  function addProduct() {
+    const category = document.getElementById("categorySelect").value;
+    const product = document.getElementById("productInput").value.trim();
+    const weight = parseFloat(document.getElementById("weightInput").value);
+    const quantity = parseInt(document.getElementById("quantityInput").value);
+
+    if (!category || !product || isNaN(weight) || isNaN(quantity) || quantity < 1) {
+      return alert("Please select a category, enter product name, weight, and quantity");
+    }
+
+    const totalProdWeight = weight * quantity;
+    const co2 = totalProdWeight * 1.2;
+    const cash = totalProdWeight * 5;
+
+    row++;
+    totalQty += quantity;
+    totalWeight += totalProdWeight;
+    totalCO2 += co2;
+    totalCash += cash;
+
+    const tr = document.createElement("tr");
+    tr.className = "hover:bg-gray-100 dark:hover:bg-gray-700 transition";
+    tr.innerHTML = `
+      <td class="py-2 px-4 border">${row}</td>
+      <td class="py-2 px-4 border">${product} <br><small class="text-gray-500 dark:text-gray-400">(${category})</small></td>
+      <td class="py-2 px-4 border">${totalProdWeight.toFixed(1)}</td>
+      <td class="py-2 px-4 border">${quantity}</td>
+      <td class="py-2 px-4 border">${co2.toFixed(1)}</td>
+      <td class="py-2 px-4 border">${cash.toFixed(0)}</td>`;
+
+    document.getElementById("productTable").appendChild(tr);
+
+    document.getElementById("totalQty").textContent = totalQty;
+    document.getElementById("totalWeight").textContent = totalWeight.toFixed(1);
+    document.getElementById("totalCO2").textContent = totalCO2.toFixed(1);
+    document.getElementById("totalCash").textContent = totalCash.toFixed(0);
+
+    // reset
+    document.getElementById("categorySelect").value = "";
+    document.getElementById("productList").innerHTML = "";
+    document.getElementById("productInput").value = "";
+    document.getElementById("weightInput").value = "";
+    document.getElementById("quantityInput").value = "1";
+    document.getElementById("weightError").classList.add("hidden");
+    document.getElementById("quantityError").classList.add("hidden");
+  }
+  
+</script>
+ <button id="chat-icon-button" class="fixed bottom-5 right-5 w-16 h-16 bg-pink-600 rounded-full shadow-lg flex items-center justify-center text-white hover:bg-pink-700 transition-colors z-50">
+       <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/></svg>
+   </button>
+   <div id="chat-widget-container" class="hidden fixed bottom-24 right-5 w-full max-w-md mx-auto bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col h-[70vh] z-40">
+       <div class="flex flex-col flex-grow overflow-hidden">
+           <div class="w-full flex flex-col h-full overflow-hidden">
+               <div class="bg-blue-600 text-white p-4 flex items-center justify-between"><h1 class="text-xl font-bold">Website Assistant</h1><button id="close-chat-button" class="text-white hover:bg-blue-700 rounded-full p-1"><svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/></svg></button></div>
+               <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 bg-gray-100"><div class="flex items-start"><div class="flex-shrink-0 w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm">AI</div><div class="ml-3 bg-white p-3 rounded-xl max-w-[80%] shadow-sm"><p class="text-sm text-gray-800">Hello! I am your assistant. How can I help you today?</p></div></div></div>
+               <div class="p-4 bg-gray-50 border-t border-gray-200"><div class="flex items-center justify-center mb-2"><button id="summary-button" class="summary-btn">✨ Summarize Conversation ✨</button></div><div class="flex items-center space-x-2"><input id="user-input" type="text" placeholder="Type your message..." class="flex-grow p-3 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"><button id="send-button" class="bg-blue-600 text-white p-3 rounded-full hover:bg-blue-700 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6"><path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.905H13.5a.75.75 0 0 1 0 1.5H4.984l-2.432 7.905a.75.75 0 0 0 .926.94 60.519 60.519 0 0 0 18.445-8.981.75.75 0 0 0 0-1.218A60.517 60.517 0 0 0 3.478 2.405Z" /></svg></button></div></div>
+           </div>
+       </div>
+   </div>
+   
+   <script src="chatgpt.js"></script>
+   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+   <script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+   <script>
+       document.addEventListener('DOMContentLoaded', () => {
+           // This script was already here, but now it has an element to attach to!
+           VANTA.NET({
+               el: "#vanta-bg",
+               mouseControls: true,
+               touchControls: true,
+               gyroControls: false,
+               minHeight: 200.00,
+               minWidth: 200.00,
+               scale: 1.00,
+               scaleMobile: 1.00,
+               color: 0x22c55e,
+               backgroundColor: 0xf0f4f8, // Changed to match your original gradient start color
+               points: 12.00,
+               maxDistance: 23.00,
+               spacing: 18.00
+           });
+           
+           // I'm assuming initializeChatbot is in your chatgpt.js file
+           // If not, you might need to define it or remove this line.
+           if (typeof initializeChatbot === 'function') {
+               initializeChatbot();
+           }
+       });
+   </script>
+</body>
+</html>
