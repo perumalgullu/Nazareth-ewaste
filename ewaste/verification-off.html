@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>E-Waste Submission Portal</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet" />
+
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+
+  <style>
+    body { 
+      font-family: 'Poppins', sans-serif; 
+      margin: 0; 
+      overflow-x: hidden;
+    }
+    #particles-js {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      z-index: -1;
+      /* Updated gradient with Forest Green from the poster */
+      background: linear-gradient(-45deg, #688509, #366204, #2f6e0d, #546015);
+      background-size: 400% 400%;
+      animation: gradientBG 15s ease infinite;
+    }
+    @keyframes gradientBG {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+  </style>
+</head>
+<body class="min-h-screen p-4 relative">
+
+  <div id="particles-js"></div>
+
+  <div class="max-w-5xl mx-auto space-y-6 relative z-10">
+
+    <div class="flex justify-between items-center bg-white p-4 rounded-lg shadow-md border border-gray-200">
+      <h2 class="text-xl md:text-2xl font-semibold text-[#2A2D2A]">👋 Welcome Officer</h2>
+      <div class="flex gap-2">
+        <a href="index.html" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md transition">Logout</a>
+        <button id="printBtn" onclick="printCertificate()" 
+          class="bg-[#0A5C36] hover:bg-[#084325] text-white px-4 py-2 rounded-md transition hidden">
+          Print Certificate
+        </button>
+      </div>
+    </div>
+
+    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-200">
+      <label for="userPhone" class="block text-gray-700 font-semibold mb-1">📞 User Phone Number</label>
+      <input type="tel" id="userPhone" placeholder="Enter 10-digit phone number"
+        pattern="[6-9]{1}[0-9]{9}" maxlength="10"
+        class="w-full border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
+        required>
+    </div>
+
+    <form id="productForm" class="bg-white p-6 rounded-lg shadow-md border border-gray-200 space-y-4" onsubmit="return false;">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <select id="productCategory" onchange="populateProductNames()" class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0A5C36]">
+          <option value="">📂 Select Category</option>
+          <option>Large Appliances</option>
+          <option>Small Appliances</option>
+          <option>IT & Telecom</option>
+          <option>Consumer Electronics</option>
+          <option>Lighting Equipment</option>
+          <option>Electrical Tools</option>
+          <option>Toys & Sports</option>
+          <option>Medical Devices</option>
+          <option>Monitoring Devices</option>
+          <option>Batteries & Cables</option>
+        </select>
+
+        <input list="productList" id="productName" placeholder="📦 Select or type product"
+          class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0A5C36]">
+        <datalist id="productList"></datalist>
+
+        <select id="reuseCategory" class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0A5C36]">
+          <option value="">♻️ Select Condition</option>
+          <option>Reuse</option>
+          <option>Refurbishable</option>
+          <option>Disposal</option>
+        </select>
+
+        <input type="number" step="0.01" id="weight" placeholder="⚖️ Weight (kg)"
+          class="border border-gray-300 p-3 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0A5C36]">
+      </div>
+
+      <div class="flex justify-end gap-2 mt-2">
+        <button type="button" onclick="addProductToTable()" class="bg-[#0A5C36] hover:bg-[#084325] text-white px-4 py-2 rounded-md transition">➕ Add Product</button>
+        <button type="button" onclick="resetFormAndScroll()" class="bg-[#F57C00] hover:bg-[#e06f00] text-white px-4 py-2 rounded-md transition">🔄 New Submission</button>
+      </div>
+    </form>
+
+    <div id="submittedTable" class="hidden bg-white p-4 rounded-lg shadow-md border border-gray-200 overflow-x-auto">
+      <table class="w-full text-sm text-center">
+        <thead class="bg-gray-100 text-gray-700 uppercase">
+          <tr>
+            <th class="py-2 px-1">S.No</th>
+            <th>User_id</th>
+            <th>Category</th>
+            <th>Product</th>
+            <th>Condition</th>
+            <th>Weight</th>
+            <th>CO₂</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+        <tfoot class="bg-gray-50 font-semibold">
+          <tr>
+            <td colspan="5" class="text-right py-2 pr-4">Total</td>
+            <td id="totalWeight">0.00</td>
+            <td id="totalCO2">0.00</td>
+            <td>-</td>
+          </tr>
+          <tr>
+            <td colspan="8" class="text-right pt-4">
+              <button type="button" onclick="handleSubmitAll()" class="bg-[#E1A921] hover:bg-[#d1980d] text-white px-6 py-2 rounded-md transition">✅ Submit All</button>
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyC_Q7n0l6MEI3ySJCLra6xl5oSc9_Pwuzc",
+      authDomain: "ewaste-bafdd.firebaseapp.com",
+      databaseURL: "https://ewaste-bafdd-default-rtdb.firebaseio.com",
+      projectId: "ewaste-bafdd",
+      storageBucket: "ewaste-bafdd.firebasestorage.app",
+      messagingSenderId: "725818718552",
+      appId: "1:725818718552:web:cdc26b05044ba3a5ad4d2d",
+      measurementId: "G-LG05FY3PRD"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const categoryOptions = {
+      "Large Appliances": ["Refrigerator", "Washing Machine", "Air Conditioner"],
+      "Small Appliances": ["Mixer", "Toaster", "Electric Kettle"],
+      "IT & Telecom": ["Laptop", "Desktop CPU", "Mobile Phone", "Tablet"],
+      "Consumer Electronics": ["TV", "CRT Monitor", "Set-top Box"],
+      "Lighting Equipment": ["LED Bulb", "Tube Light"],
+      "Electrical Tools": ["Drill", "Soldering Iron"],
+      "Toys & Sports": ["Remote Car", "Electronic Toy"],
+      "Medical Devices": ["Glucometer", "Digital Thermometer"],
+      "Monitoring Devices": ["CCTV Camera", "Door Alarm"],
+      "Batteries & Cables": ["Power Bank", "USB Cable"]
+    };
+
+    function populateProductNames() {
+      const category = document.getElementById("productCategory").value;
+      const products = categoryOptions[category] || [];
+      const productList = document.getElementById("productList");
+      productList.innerHTML = products.map(p => `<option value="${p}">`).join('');
+    }
+
+    let submittedProducts = [];
+
+    function resetFormAndScroll() {
+      document.getElementById("productForm").reset();
+      submittedProducts = [];
+      updateTable();
+      document.getElementById("submittedTable").classList.add("hidden");
+      document.getElementById("userPhone").value = "";
+      document.getElementById("userPhone").disabled = false;
+      document.getElementById("printBtn").classList.add("hidden");
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function updateTable() {
+      const tableBody = document.getElementById("tableBody");
+      tableBody.innerHTML = "";
+      let totalWeight = 0, totalCO2 = 0;
+      submittedProducts.forEach((p, i) => {
+        tableBody.innerHTML += `
+          <tr class="border-t hover:bg-gray-50">
+            <td class="py-2">${i + 1}</td>
+            <td>${p.userId}</td>
+            <td>${p.category}</td>
+            <td>${p.product}</td>
+            <td>${p.condition}</td>
+            <td>${p.weight.toFixed(2)}</td>
+            <td>${p.co2.toFixed(2)}</td>
+            <td class="px-2 text-center">
+              <button onclick="editProduct(${i})" class="text-yellow-600 hover:text-yellow-700">✏️</button>
+              <button onclick="deleteProduct(${i})" class="text-red-600 hover:text-red-700 ml-2">🗑</button>
+            </td>
+          </tr>`;
+        totalWeight += parseFloat(p.weight);
+        totalCO2 += p.co2;
+      });
+      document.getElementById("totalWeight").textContent = totalWeight.toFixed(2);
+      document.getElementById("totalCO2").textContent = totalCO2.toFixed(2);
+      if (submittedProducts.length > 0) {
+        document.getElementById("submittedTable").classList.remove("hidden");
+      } else {
+        document.getElementById("submittedTable").classList.add("hidden");
+      }
+    }
+
+    function deleteProduct(index) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                submittedProducts.splice(index, 1);
+                updateTable();
+                Swal.fire('Deleted!', 'The product has been removed.', 'success');
+            }
+        })
+    }
+
+    function editProduct(index) {
+      const item = submittedProducts[index];
+      document.getElementById("productCategory").value = item.category;
+      populateProductNames();
+      document.getElementById("productName").value = item.product;
+      document.getElementById("reuseCategory").value = item.condition;
+      document.getElementById("weight").value = item.weight;
+      submittedProducts.splice(index, 1);
+      updateTable();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function addProductToTable() {
+      const userId = document.getElementById("userPhone").value.trim();
+      const category = document.getElementById("productCategory").value;
+      const product = document.getElementById("productName").value;
+      const condition = document.getElementById("reuseCategory").value;
+      const weight = parseFloat(document.getElementById("weight").value);
+
+      const phonePattern = /^[6-9]\d{9}$/;
+      if (!phonePattern.test(userId)) {
+        Swal.fire("⚠️ Invalid Phone", "Please enter a valid 10-digit phone number.", "warning");
+        return;
+      }
+      if (!category || !product || !condition || isNaN(weight) || weight <= 0) {
+        Swal.fire("⚠️ Missing or Invalid Data", "Please fill all fields with valid data.", "warning");
+        return;
+      }
+      const multipliers = { "Reuse": 2.5, "Refurbishable": 1.8, "Disposal": 1.2 };
+      const co2 = weight * multipliers[condition];
+
+      submittedProducts.push({ userId, category, product, condition, weight, co2 });
+      updateTable();
+      
+      // Only reset the product-specific fields, not the phone number
+      document.getElementById("productCategory").value = "";
+      document.getElementById("productName").value = "";
+      document.getElementById("reuseCategory").value = "";
+      document.getElementById("weight").value = "";
+      
+      document.getElementById("userPhone").disabled = true;
+    }
+
+    function handleSubmitAll() {
+      if (submittedProducts.length === 0) {
+        Swal.fire("⚠️ No Products", "Add some products before submitting!", "warning");
+        return;
+      }
+
+      const timestamp = new Date().toLocaleString("en-GB", {
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true
+      });
+
+      submittedProducts.forEach(item => {
+        firebase.database().ref("ewasteSubmissions").push().set({
+          ...item,
+          createdAt: timestamp
+        });
+      });
+
+      // Celebration popup
+      Swal.fire({
+        title: "🎉 Submission Successful!",
+        html: `<h2 style="font-size: 28px; margin: 15px 0;"><b>${submittedProducts.length}</b> products saved successfully!<br>🌱 Thanks for contributing!</h2>`,
+        icon: "success",
+        confirmButtonText: "Awesome 🚀",
+        width: 600,
+        padding: '3em',
+        backdrop: "rgba(0,0,0,0.6)"
+      });
+
+      // Confetti
+      var duration = 5 * 1000;
+      var animationEnd = Date.now() + duration;
+      var defaults = { startVelocity: 30, spread: 360, ticks: 100, zIndex: 9999, scalar: 1.5, shapes: ['diamond'] };
+
+      function frame() {
+        confetti({ ...defaults, particleCount: 4, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+        confetti({ ...defaults, particleCount: 4, origin: { x: Math.random(), y: Math.random() - 0.2 } });
+        if (Date.now() < animationEnd) requestAnimationFrame(frame);
+      }
+      frame();
+
+      document.getElementById("printBtn").classList.remove("hidden");
+      printCertificate();
+      
+      // Do not clear and disable userPhone after submission, but clear the table
+      document.getElementById("productForm").reset();
+      submittedProducts = [];
+      updateTable();
+      document.getElementById("submittedTable").classList.add("hidden");
+    }
+
+    function printCertificate() {
+      const username = document.getElementById("userPhone").value || "Valued Contributor";
+      const date = new Date().toLocaleDateString("en-GB");
+      const totalWeight = document.getElementById("totalWeight").textContent || "0";
+      const totalCO2 = document.getElementById("totalCO2").textContent || "0";
+
+      const content = `
+        <html>
+          <head>
+            <title>Certificate of Contribution</title>
+            <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700;900&display=swap" rel="stylesheet">
+            <style>
+              @media print {@page { margin: 0; size: A4 portrait;} body {margin:0;} }
+              body { font-family: 'Poppins', sans-serif; background: #fdfcf7; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+              /* Updated Certificate colors */
+              .cert-container { border: 12px solid #E1A921; padding: 50px; border-radius: 15px; background: #fff; width: 85%; max-width: 800px; text-align: center; box-shadow: 0 0 20px rgba(0,0,0,0.1);}
+              .logo { width: 100px; margin-bottom: 10px; }
+              .college { font-size: 30px; font-weight: 900; color: #E1A921; text-transform: uppercase; margin-bottom: 5px; }
+              .location { font-size: 14px; color: #555; margin-bottom: 20px; }
+              .cert-title { font-size: 40px; font-weight: 700; color: #2A2D2A; margin-bottom: 10px; }
+              .cert-subtitle { font-size: 18px; color: #555; margin-bottom: 30px; }
+              .cert-name { font-size: 32px; font-weight: 600; color: #0A5C36; margin: 20px 0; border-bottom: 2px solid #E1A921; display: inline-block; padding: 0 20px 5px; }
+              .cert-body { font-size: 16px; color: #444; margin: 25px 0; line-height: 1.6; }
+              .cert-stats { font-size: 17px; color: #333; margin-top: 30px; text-align: left; display: inline-block; padding: 15px 25px; border: 2px solid #E1A921; border-radius: 10px; background: #fcfaf2; }
+              .cert-stats p { margin: 8px 0; }
+              .cert-date { margin-top: 30px; font-size: 15px; color: #555; }
+              .seal { margin-top: 35px; width: 120px; height: 120px; border-radius: 50%; border: 5px solid #E1A921; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: bold; color: #E1A921; background: #fff; margin-left: auto; margin-right: auto; letter-spacing: 1px; }
+            </style>
+          </head>
+          <body>
+            <div class="cert-container">
+              <img src="https://www.ncas.in/wp-content/uploads/2023/10/logo-2.png" alt="Nazareth College Crest" class="logo">
+              <div class="college">Nazareth College of Arts and Science</div>
+              <div class="location">Avadi, Chennai - 600062</div>
+              <div class="cert-title">Certificate of Contribution</div>
+              <div class="cert-subtitle">This is proudly presented to</div>
+              <div class="cert-name">${username}</div>
+              <div class="cert-body">
+                In recognition of your valuable contribution towards<br>
+                responsible e-waste management and sustainability.
+              </div>
+              <div class="cert-stats">
+                <p><strong>Total Weight Collected:</strong> ${totalWeight} kg</p>
+                <p><strong>Total CO₂ Saved:</strong> ${totalCO2} kg</p>
+              </div>
+              <div class="cert-date">Date: ${date}</div>
+              <div class="seal">AUTHORIZED</div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const win = window.open('', '', 'width=900,height=650');
+      win.document.write(content);
+      win.document.close();
+      setTimeout(() => win.print(), 500); // Timeout to allow assets to load
+    }
+
+    // Initialize particles.js
+    particlesJS("particles-js", {
+      "particles": {
+        "number": { "value": 60 },
+        "color": { "value": "#ffffff" },
+        "shape": { "type": "circle" },
+        "opacity": { "value": 0.5, "random": true },
+        "size": { "value": 4, "random": true },
+        "line_linked": { "enable": true, "distance": 150, "color": "#ffffff", "opacity": 0.4, "width": 1 },
+        "move": { "enable": true, "speed": 2, "direction": "none", "out_mode": "out", "attract": { "enable": false } }
+      },
+      "interactivity": {
+        "detect_on": "canvas",
+        "events": { "onhover": { "enable": true, "mode": "grab" }, "onclick": { "enable": true, "mode": "push" } },
+        "modes": { "grab": { "distance": 140, "line_linked": { "opacity": 1 } }, "push": { "particles_nb": 4 } }
+      },
+      "retina_detect": true
+    });
+  </script>
+</body>
+</html>
