@@ -1,5 +1,5 @@
 function initializeChatbot() {
-    const chatAPI_KEY = "AIzaSyDHPRIxyJuqeBHXX-V5moX2gLJVOBOoqAY";
+    const chatAPI_KEY = "AIzaSyDYzs6ALTiLxSVT7RcTI0I0qr1PsUOQRpg";
     const chatAPI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + chatAPI_KEY;
     const chatMessages = document.getElementById('chat-messages');
     const userInput = document.getElementById('user-input');
@@ -874,4 +874,5 @@ concerns in business as well as operations.
     sendButton.addEventListener('click', () => sendMessage(false));
     summaryButton.addEventListener('click', () => sendMessage(true));
     userInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); sendMessage(false); } });
+
 }
